@@ -1,239 +1,110 @@
 name: Build APK
 
 on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:  # Permite rodar manualmente na aba Actions
+push:
+branches:
+- main
+workflow_dispatch:
 
 permissions:
-  contents: read
+contents: read
 
 jobs:
-  build:
-    name: Build Android APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+build:
+name: Build Android APK
+runs-on: ubuntu-latest
+timeout-minutes: 60
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk \
-            autoconf libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libtinfo5 cmake libffi-dev libssl-dev automake \
-            libsqlite3-dev libbz2-dev libreadline-dev \
-            libgdbm-dev liblzma-dev tk-dev
+  - name: Install system dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y \
+        git \
+        zip \
+        unzip \
+        openjdk-17-jdk \
+        autoconf \
+        libtool \
+        pkg-config \
+        zlib1g-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        cmake \
+        libffi-dev \
+        libssl-dev \
+        automake \
+        libsqlite3-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libgdbm-dev \
+        liblzma-dev \
+        tk-dev
 
-      - name: Install Buildozer and Cython
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
+  - name: Install Buildozer
+    run: |
+      python -m pip install --upgrade pip
+      python -m pip install buildozer cython
 
-      - name: Initialize Buildozer (first run)
-        run: |
-          buildozer init
-        working-directory: ${{ github.workspace }}
+  - name: Create buildozer.spec
+    run: |
+      cat > buildozer.spec <<'EOF'
+      [app]
 
-      - name: Configure buildozer.spec
-        run: |
-          cat > buildozer.spec << 'EOF'
-[app]
+      title = Corretor de Simulado
+      package.name = corretorsimulado
+      package.domain = br.com.corretorsimulado
 
-# (str) Title of your application
-title = Corretor de Simulado
+      source.dir = .
+      source.include_exts = py,png,jpg,jpeg,kv,json,txt
 
-# (str) Package name
-package.name = corretorsimulado
+      version = 1.0.0
 
-# (str) Package domain (needs for android/ios packaging)
-package.domain = org.escola
+      requirements = python3,kivy==2.3.0,numpy,opencv,pillow,plyer
 
-# (str) Source code where the main.py live
-source.dir = .
+      orientation = portrait
+      fullscreen = 0
 
-# (list) Source files to include (let buildozer find them)
-source.include_exts = py,png,jpg,kv,json,txt
+      android.permissions = CAMERA
+      android.api = 33
+      android.minapi = 24
+      android.ndk = 25b
 
-# (list) List of inclusions using pattern matching
-#source.include_patterns = assets/*,images/*.png
+      android.archs = arm64-v8a
 
-# (str) Application versioning (method 1)
-version = 1.0.0
+      android.package_format = apk
 
-# (list) Application requirements
-# comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,opencv-python,numpy
+      [buildozer]
 
-# (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
-orientation = portrait
+      log_level = 2
+      warn_on_root = 1
+      EOF
 
-# (bool) Indicate if the application should be fullscreen
-fullscreen = 0
+  - name: Build APK
+    run: |
+      buildozer -v android debug
 
-# (list) Permissions
-android.permissions = CAMERA
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: corretor-simulado-apk
+      path: bin/*.apk
+      retention-days: 30
 
-# (int) Target Android API
-android.api = 31
-
-# (int) Minimum API your APK / AAB will support
-android.minapi = 21
-
-# (str) Android NDK version to use
-android.ndk = 25b
-
-# (str) python-for-android branch to use
-p4a.branch = master
-
-# (bool) If True, then skip trying to update the Android sdk
-# This can be useful to avoid any Internet access
-# p4a.skip_update = False
-
-# (str) Android entry point, default is ok for Kivy-based app
-# android.entrypoint = org.kivy.android.PythonActivity
-
-# (list) List of Java .jar files to add to the libs so that pyjnius can access
-# their classes. Don't add jars that you do not need, since extra jars can slow
-# down the build process. Allows wildcards matching, e.g. android.add_jars = foo.jar,bar.jar,lib/*.jar
-# android.add_jars =
-
-# (list) List of Java files to add to the project (for customizing the Activity)
-# android.add_src =
-
-# (list) Android AAR archives to add
-# android.add_aars =
-
-# (list) Put these Gradle dependencies in the build.gradle dependencies section
-# android.gradle_dependencies =
-
-# (list) Add android compile options
-# android.add_compile_options =
-
-# (list) Gradle repositories to add
-# android.gradle_repositories =
-
-# (str) python-for-android bootstrap to use
-# p4a.bootstrap = sdl2
-
-# (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-# In past, was called android.arch
-android.archs = arm64-v8a, armeabi-v7a
-
-# (int) How many parallel jobs to use for building
-# android.parallel = 4
-
-# (bool) Generate an AAB instead of APK (required for Play Store)
-# android.aab = True
-
-# (str) The format of the package to build (aab or apk)
-android.package_format = apk
-
-# (str) Python version to use
-# p4a.python_version = 3.11
-
-# (bool) Enable AndroidX support
-android.enable_androidx = True
-
-# (str) Gradle version to use
-# android.gradle_version = 8.0
-
-#
-# Python for android (p4a) specific
-#
-
-# (str) python-for-android fork to use, defaults to upstream (kivy)
-# p4a.fork = kivy
-
-# (str) python-for-android branch to use
-# p4a.branch = master
-
-# (str) OUYA Console category
-# android.ouya.category = GAME
-
-# (str) Filename of OUYA Console icon
-# android.ouya.icon.filename = %(source.dir)s/data/icon.png
-
-# (str) XML file to include as an intent filter in <activity> tag
-# android.manifest.intent_filters =
-
-# (str) launchMode to set for the main activity
-# android.manifest.launch_mode = standard
-
-# (list) Android additionnal libraries to copy into libs/armeabi
-# android.add_libs_armeabi = libs/android/*.so
-# android.add_libs_armeabi_v7a = libs/android-v7/*.so
-# android.add_libs_arm64_v8a = libs/android-arm64/*.so
-# android.add_libs_x86 = libs/android-x86/*.so
-# android.add_libs_x86_64 = libs/android-x86_64/*.so
-
-# (list) Android additionnal libraries to copy into libs/armeabi
-# android.add_libs_armeabi = libs/android/*.so
-# android.add_libs_armeabi_v7a = libs/android-v7/*.so
-# android.add_libs_arm64_v8a = libs/android-arm64/*.so
-# android.add_libs_x86 = libs/android-x86/*.so
-# android.add_libs_x86_64 = libs/android-x86_64/*.so
-
-# (bool) If True, then skip trying to update the Android sdk
-# This can be useful to avoid any Internet access
-# p4a.skip_update = False
-
-# (str) python-for-android bootstrap to use
-# p4a.bootstrap = sdl2
-
-# (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-# In past, was called android.arch
-android.archs = arm64-v8a, armeabi-v7a
-
-#
-# Buildozer specific
-#
-
-# (int) Log level (0 = error only, 1 = info, 2 = debug)
-log_level = 2
-
-# (bool) Display warning if buildozer is run as root
-warn_on_root = 1
-
-# (str) Path to build artifact storage, absolute or relative to spec file
-# build_dir = ./.buildozer
-
-# (str) Path to build output (i.e. .apk, .aab) storage
-# bin_dir = ./bin
-
-#    -----------------------------------------------------------------------------
-#    List as sections
-#    -----------------------------------------------------------------------------
-EOF
-
-      - name: Build APK
-        run: |
-          buildozer -v android debug
-        working-directory: ${{ github.workspace }}
-        env:
-          # Evita prompts interativos
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: corretor-simulado-apk
-          path: bin/*.apk
-          retention-days: 30
-
-      - name: Upload debug logs (if build fails)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: .buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/*/logs/
-          retention-days: 7
+  - name: Upload build logs if failed
+    if: failure()
+    uses: actions/upload-artifact@v4
+    with:
+      name: build-logs
+      path: .buildozer/
+      retention-days: 7
+```
