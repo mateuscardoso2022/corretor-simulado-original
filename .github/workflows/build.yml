@@ -28,27 +28,7 @@ steps:
   - name: Install system dependencies
     run: |
       sudo apt-get update
-      sudo apt-get install -y \
-        git \
-        zip \
-        unzip \
-        openjdk-17-jdk \
-        autoconf \
-        libtool \
-        pkg-config \
-        zlib1g-dev \
-        libncurses5-dev \
-        libncursesw5-dev \
-        cmake \
-        libffi-dev \
-        libssl-dev \
-        automake \
-        libsqlite3-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libgdbm-dev \
-        liblzma-dev \
-        tk-dev
+      sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev automake libsqlite3-dev libbz2-dev libreadline-dev libgdbm-dev liblzma-dev tk-dev
 
   - name: Install Buildozer
     run: |
@@ -59,32 +39,23 @@ steps:
     run: |
       cat > buildozer.spec <<'EOF'
       [app]
-
       title = Corretor de Simulado
       package.name = corretorsimulado
       package.domain = br.com.corretorsimulado
-
       source.dir = .
       source.include_exts = py,png,jpg,jpeg,kv,json,txt
-
       version = 1.0.0
-
       requirements = python3,kivy==2.3.0,numpy,opencv,pillow,plyer
-
       orientation = portrait
       fullscreen = 0
-
       android.permissions = CAMERA
       android.api = 33
       android.minapi = 24
       android.ndk = 25b
-
       android.archs = arm64-v8a
-
       android.package_format = apk
 
       [buildozer]
-
       log_level = 2
       warn_on_root = 1
       EOF
